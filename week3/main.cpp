@@ -1,5 +1,7 @@
 #include <iostream>
+#include <memory>
 #include "shared_ptr.h"
+#include "db.h"
 
 void printSharedPtrInt(SharedPtrInt& ptr) {
     if (ptr)
@@ -8,7 +10,15 @@ void printSharedPtrInt(SharedPtrInt& ptr) {
         std::cout << "SharedPtrInt<mResource: null, Refcount: " << ptr.use_count() << ">\n"; 
 }
 
-int main() {
+void printDbConnectionPool(Pool& pool) {
+    std::cout << "DbConnectionPool<";
+    for (const auto& conn : pool.getConnections()) {
+        std::cout << "Conn<Locks:" << conn.use_count() << ">";
+    }
+    std::cout << ">\n";
+}
+
+void runSharedPtrIntPresentation() {
     int* resource = new int{9};
     std::cout << "Creating shared ptr:\n";
     auto ptr {SharedPtrInt(resource)};
@@ -52,7 +62,32 @@ int main() {
     std::cout << "Ptr2 unaffected by the enitre process:\n";
     printSharedPtrInt(ptr2);
 
+}
 
-    
+void runDbConnectionPoolPresentation() {
+    std::cout << "Creating pool\n";
+    Pool pool;
+    printDbConnectionPool(pool);
+    std::cout << "\nCreating two consumers\n";
+    auto dbCons1 {pool.getObject()};
+    {
+        auto dbCons2 {pool.getObject()};
+        printDbConnectionPool(pool);
+        std::cout << "\nReleasing one of the consumers\n";
+    }
+    printDbConnectionPool(pool);
+    std::cout << "\nCreating new consumer, expecting to relock the previous connection\n";
+    auto dbCons2 {pool.getObject()};
+    printDbConnectionPool(pool);
+    std::cout << "\nDeleting pool, only now the dbconnections get released:\n";
+
+}
+
+int main() {
+    runSharedPtrIntPresentation();
+    std::cout << "\n---\n";
+    runDbConnectionPoolPresentation();
+ 
+
     
 }
