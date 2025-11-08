@@ -4,7 +4,7 @@
 
 SharedPtrInt::SharedPtrInt() :
     mResource(nullptr),
-    mControlBlock(new ControlBlock{1, 0})
+    mControlBlock(nullptr)
     {}
 
 SharedPtrInt::SharedPtrInt(int* res) :
@@ -14,9 +14,12 @@ SharedPtrInt::SharedPtrInt(int* res) :
 
 SharedPtrInt& SharedPtrInt::operator= (const SharedPtrInt& other)
     {
+    if (this == &other) return *this;
+    release();
     mResource = other.mResource;
     mControlBlock = other.mControlBlock;
-    mControlBlock->shared_refcount++;
+    if (other.mControlBlock)
+        mControlBlock->shared_refcount++;
     return *this;
     }
 
@@ -33,31 +36,38 @@ SharedPtrInt::~SharedPtrInt() {
 
 SharedPtrInt::SharedPtrInt(SharedPtrInt&& other) noexcept :
     mResource(std::exchange(other.mResource, nullptr)),
-    mControlBlock(std::exchange(other.mControlBlock, new ControlBlock{1, 0}))
+    mControlBlock(std::exchange(other.mControlBlock, nullptr))
     {}
 
 SharedPtrInt& SharedPtrInt::operator=(SharedPtrInt&& other) noexcept
     {
         if (this == &other) return *this;
         release();
-        mControlBlock = std::exchange(other.mControlBlock, new ControlBlock{1, 0}),
+        mControlBlock = std::exchange(other.mControlBlock, nullptr);
         mResource = std::exchange(other.mResource, nullptr);
         
         return *this;
     }
 
 void SharedPtrInt::release() {
-    mControlBlock->shared_refcount--;
-    if (mControlBlock->shared_refcount == 0) {
-        delete mResource;
-        std::cout << "SharedPtrInt: Last reference removed, resource deleted\n";
+    if (!mControlBlock) {
         return;
     }
-    std::cout << "SharedPtrInt Non-last reference removed, resource not deleted\n";
+    if (--mControlBlock->shared_refcount == 0) {
+        delete mResource;
+        std::cout << "SharedPtrInt: Last reference removed, resource deleted\n";
+        if (mControlBlock->weak_refcount == 0) {
+            delete mControlBlock;
+        }
+    } else {
+        std::cout << "SharedPtrInt Non-last reference removed, resource not deleted\n";
+    }
+    mResource = nullptr;
+    mControlBlock = nullptr;
 }
 
 int SharedPtrInt::use_count() const noexcept {
-    return mControlBlock->shared_refcount;
+    return mControlBlock ? mControlBlock->shared_refcount : 0;
 }
 
 int* SharedPtrInt::operator->() const noexcept {
@@ -71,5 +81,3 @@ int& SharedPtrInt::operator*() const noexcept {
 SharedPtrInt::operator bool() const noexcept {
     return mResource != nullptr;
 }
-
-// mypointer->x == (*mypointer).x
