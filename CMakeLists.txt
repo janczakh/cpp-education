@@ -5,5 +5,8 @@ project(cpp_learning)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-file(GLOB week1_sources week1/*.cpp)
-add_executable(week1 ${week1_sources})
+file(GLOB week2_sources week2/*.cpp)
+add_executable(week2 ${week2_sources})
+
+file(GLOB week3_sources week3/*.cpp)
+add_executable(week3 ${week3_sources})
