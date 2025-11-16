@@ -10,3 +10,6 @@ add_executable(week2 ${week2_sources})
 
 file(GLOB week3_sources week3/*.cpp)
 add_executable(week3 ${week3_sources})
+
+file(GLOB week4_sources week4/*.cpp)
+add_executable(week4 ${week4_sources})
